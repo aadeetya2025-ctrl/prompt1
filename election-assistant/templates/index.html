@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Election Process Assistant</title>
+    <style>
+        :root {
+            --primary-blue: #1e3a8a;
+            --secondary-blue: #3b82f6;
+            --light-blue: #eff6ff;
+            --white: #ffffff;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --border-color: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            gap: 20px;
+        }
+
+        .chat-container {
+            background-color: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background-color: var(--primary-blue);
+            color: var(--white);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .chat-header p {
+            margin: 8px 0 0 0;
+            font-size: 0.9rem;
+            color: #dbeafe;
+        }
+
+        .quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 15px;
+            background-color: var(--light-blue);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .quick-action-btn {
+            background-color: var(--white);
+            color: var(--secondary-blue);
+            border: 1px solid var(--secondary-blue);
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .quick-action-btn:hover {
+            background-color: var(--secondary-blue);
+            color: var(--white);
+        }
+
+        #chat-box {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background-color: #fafafa;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background-color: var(--secondary-blue);
+            color: var(--white);
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot-message {
+            align-self: flex-start;
+            background-color: var(--white);
+            color: var(--text-dark);
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .input-container {
+            display: flex;
+            padding: 15px;
+            background-color: var(--white);
+            border-top: 1px solid var(--border-color);
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #user-input:focus {
+            border-color: var(--secondary-blue);
+        }
+
+        #send-btn {
+            background-color: var(--primary-blue);
+            color: var(--white);
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            margin-left: 10px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+
+        #send-btn:hover {
+            background-color: var(--secondary-blue);
+        }
+        
+        #send-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+            transform: translateX(1px);
+        }
+        
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            background-color: transparent;
+            color: var(--text-light);
+            font-size: 0.85rem;
+            font-style: italic;
+            padding: 0 16px;
+            margin-bottom: 8px;
+        }
+
+        /* Scrollbar styling */
+        #chat-box::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chat-box::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #chat-box::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        /* Timeline styles */
+        .timeline-btn-container {
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+        }
+        .show-timeline-btn {
+            background-color: var(--secondary-blue);
+            color: var(--white);
+            border: none;
+            border-radius: 24px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+        }
+        .show-timeline-btn:hover {
+            background-color: var(--primary-blue);
+        }
+        .timeline-container {
+            display: none;
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .timeline-container h2 {
+            margin-top: 0;
+            text-align: center;
+            color: var(--primary-blue);
+            margin-bottom: 20px;
+        }
+        .timeline-item {
+            display: flex;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .timeline-item:last-child {
+            margin-bottom: 0;
+        }
+        .timeline-icon {
+            font-size: 1.5rem;
+            width: 44px;
+            height: 44px;
+            background-color: var(--light-blue);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+            flex-shrink: 0;
+        }
+        .timeline-line {
+            position: absolute;
+            left: 22px;
+            top: 44px;
+            bottom: -20px;
+            width: 2px;
+            background-color: var(--border-color);
+            z-index: 1;
+        }
+        .timeline-item:last-child .timeline-line {
+            display: none;
+        }
+        .timeline-content {
+            margin-left: 15px;
+            background-color: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            flex: 1;
+        }
+        .timeline-content h3 {
+            margin: 0 0 5px 0;
+            font-size: 1.1rem;
+            color: var(--primary-blue);
+        }
+        .timeline-duration {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .timeline-desc {
+            margin: 0;
+            font-size: 0.95rem;
+            color: var(--text-dark);
+        }
+
+        /* Footer styling */
+        .app-footer {
+            margin-top: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: var(--text-light);
+            font-size: 0.85rem;
+            width: 100%;
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🗳️ Election Process Assistant</h1>
+            <p>Ask me anything about how elections work!</p>
+        </div>
+
+        <div class="quick-actions">
+            <button class="quick-action-btn" onclick="sendQuickAction('How to Register')">How to Register</button>
+            <button class="quick-action-btn" onclick="sendQuickAction('Voting Timeline')">Voting Timeline</button>
+            <button class="quick-action-btn" onclick="sendQuickAction('On Voting Day')">On Voting Day</button>
+            <button class="quick-action-btn" onclick="sendQuickAction('How Results Work')">How Results Work</button>
+            <button class="quick-action-btn" onclick="sendQuickAction('What is EVM?')">What is EVM?</button>
+            <button class="quick-action-btn" onclick="sendQuickAction('Who Can Vote?')">Who Can Vote?</button>
+        </div>
+
+        <div id="chat-box">
+            <div class="message bot-message">
+                Hello! I am your Election Process Assistant. I can help you with topics like voter registration, voting process, election timelines, candidates, results, and EVMs. How can I assist you today?
+            </div>
+            <div id="typing-indicator" class="typing-indicator">Assistant is typing...</div>
+        </div>
+
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="Type your question here..." onkeypress="handleKeyPress(event)">
+            <button id="send-btn" onclick="sendMessage()" aria-label="Send Message">
+                <svg viewBox="0 0 24 24">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="timeline-btn-container">
+        <button class="show-timeline-btn" onclick="toggleTimeline()">📅 Show Election Timeline</button>
+    </div>
+
+    <div id="timeline-container" class="timeline-container">
+        <h2>Election Timeline</h2>
+        <div id="timeline-content-area"></div>
+    </div>
+
+    <!-- Added Footer -->
+    <footer class="app-footer">
+        Powered by Google Antigravity | Data based on Election Commission of India guidelines
+    </footer>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        function scrollToBottom() {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Updated addMessage to accept a searchUrl parameter
+        function addMessage(message, isUser, searchUrl = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
+            messageDiv.textContent = message;
+            
+            // If it's a bot message and we have a search URL, append the "Learn more" link
+            if (!isUser && searchUrl) {
+                const link = document.createElement('a');
+                link.href = searchUrl;
+                link.target = '_blank';
+                link.innerHTML = '🔍 Learn more on Google';
+                link.style.display = 'block';
+                link.style.marginTop = '8px';
+                link.style.fontSize = '0.85rem';
+                link.style.color = 'var(--secondary-blue)';
+                link.style.textDecoration = 'none';
+                link.style.fontWeight = 'bold';
+                
+                link.addEventListener('mouseover', () => link.style.textDecoration = 'underline');
+                link.addEventListener('mouseout', () => link.style.textDecoration = 'none');
+                
+                messageDiv.appendChild(link);
+            }
+            
+            // Insert before typing indicator
+            chatBox.insertBefore(messageDiv, typingIndicator);
+            scrollToBottom();
+        }
+
+        function showTypingIndicator() {
+            typingIndicator.style.display = 'block';
+            scrollToBottom();
+        }
+
+        function hideTypingIndicator() {
+            typingIndicator.style.display = 'none';
+        }
+
+        async function sendMessage(text = null) {
+            const messageText = text || userInput.value.trim();
+            
+            if (!messageText) return;
+
+            // Clear input
+            if (!text) userInput.value = '';
+
+            // Add user message to chat
+            addMessage(messageText, true);
+            showTypingIndicator();
+
+            try {
+                // Fetch the bot reply from the /chat endpoint
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: messageText })
+                });
+
+                const data = await response.json();
+                
+                // Fetch the search URL for the user's query
+                let searchUrl = null;
+                try {
+                    const searchRes = await fetch('/search?q=' + encodeURIComponent(messageText));
+                    const searchData = await searchRes.json();
+                    searchUrl = searchData.search_url;
+                } catch (e) {
+                    console.error('Failed to fetch search URL:', e);
+                }
+                
+                hideTypingIndicator();
+                
+                if (data.reply) {
+                    // Pass the retrieved searchUrl to addMessage
+                    addMessage(data.reply, false, searchUrl);
+                } else {
+                    addMessage("Sorry, I encountered an error. Please try again.", false);
+                }
+            } catch (error) {
+                hideTypingIndicator();
+                addMessage("Failed to connect to the server. Is the application running?", false);
+                console.error('Error:', error);
+            }
+        }
+
+        function sendQuickAction(actionText) {
+            sendMessage(actionText);
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        let timelineLoaded = false;
+        
+        async function toggleTimeline() {
+            const timelineContainer = document.getElementById('timeline-container');
+            const btn = document.querySelector('.show-timeline-btn');
+            
+            if (timelineContainer.style.display === 'block') {
+                timelineContainer.style.display = 'none';
+                btn.innerHTML = '📅 Show Election Timeline';
+            } else {
+                timelineContainer.style.display = 'block';
+                btn.innerHTML = '📅 Hide Election Timeline';
+                
+                if (!timelineLoaded) {
+                    await fetchTimeline();
+                    timelineLoaded = true;
+                }
+                
+                timelineContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        async function fetchTimeline() {
+            const contentArea = document.getElementById('timeline-content-area');
+            contentArea.innerHTML = '<p style="text-align:center;">Loading timeline...</p>';
+            
+            try {
+                const response = await fetch('/timeline');
+                const phases = await response.json();
+                
+                contentArea.innerHTML = '';
+                
+                phases.forEach(phase => {
+                    const item = document.createElement('div');
+                    item.className = 'timeline-item';
+                    
+                    item.innerHTML = `
+                        <div class="timeline-icon">${phase.emoji}</div>
+                        <div class="timeline-line"></div>
+                        <div class="timeline-content">
+                            <h3>${phase.phase}</h3>
+                            <div class="timeline-duration">${phase.duration}</div>
+                            <p class="timeline-desc">${phase.description}</p>
+                        </div>
+                    `;
+                    
+                    contentArea.appendChild(item);
+                });
+            } catch (error) {
+                contentArea.innerHTML = '<p style="text-align:center; color:red;">Failed to load timeline data.</p>';
+                console.error('Error fetching timeline:', error);
+            }
+        }
+    </script>
+</body>
+</html>
