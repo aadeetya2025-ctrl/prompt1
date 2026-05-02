@@ -1,7 +1,21 @@
 from flask import Flask, render_template, request, jsonify
+from googletrans import Translator
+from flask_cors import CORS
+from flask_compress import Compress
+import functools
+import time
 
 app = Flask(__name__)
+Compress(app)
+CORS(app)
+translator = Translator()
 
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
 ELECTION_INFO = {
     "eligibility": "To vote in India, you must be an Indian citizen, at least 18 years of age on the qualifying date (usually Jan 1st), and registered as a voter in the constituency where you reside.",
     "registration": "You can register online via voterportal.eci.gov.in. Step 1: Create an account. Step 2: Fill out Form 6 for new voter registration. Step 3: Upload required documents (age and address proof). Step 4: Submit and track your application status.",
@@ -13,6 +27,7 @@ ELECTION_INFO = {
     "mcc": "The Model Code of Conduct (MCC) is a set of guidelines issued by the Election Commission to regulate political parties and candidates prior to elections. It ensures free and fair elections by preventing ruling parties from misusing official machinery and maintaining a level playing field."
 }
 
+@functools.lru_cache(maxsize=128)
 def get_election_response(user_message):
     message = user_message.lower()
     
@@ -37,7 +52,7 @@ def get_election_response(user_message):
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return render_template("index.html"), 200
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -45,9 +60,17 @@ def chat():
     if not data or "message" not in data:
         return jsonify({"error": "No message provided"}), 400
     
-    user_message = data["message"]
+    user_message = str(data["message"]).strip()[:500]
+    if not user_message:
+        return jsonify({"error": "Message cannot be empty"}), 400
+        
     reply = get_election_response(user_message)
-    return jsonify({"reply": reply})
+    
+    if "hindi" in user_message.lower() or "translate to hindi" in user_message.lower():
+        translated = translator.translate(reply, dest="hi")
+        reply = translated.text
+        
+    return jsonify({"reply": reply}), 200
 
 @app.route("/timeline", methods=["GET"])
 def timeline():
@@ -62,7 +85,7 @@ def timeline():
         {"phase": "Vote Counting", "duration": "1 Day", "description": "EVMs are unsealed and votes are counted under strict supervision.", "emoji": "🧮"},
         {"phase": "Results Declaration", "duration": "Same Day as Counting", "description": "The candidate with the most votes wins. Winning party forms government.", "emoji": "🏆"}
     ]
-    return jsonify(phases)
+    return jsonify(phases), 200
 
 @app.route("/search", methods=["GET"])
 def search():
@@ -73,7 +96,35 @@ def search():
     encoded_query = urllib.parse.quote(query)
     # Construct the search URL with "India election" prefix
     search_url = f"https://www.google.com/search?q=India+election+{encoded_query}"
-    return jsonify({"search_url": search_url})
+    knowledge_url = f"https://www.google.com/search?q={encoded_query}+Election+Commission+of+India"
+    return jsonify({"search_url": search_url, "knowledge_url": knowledge_url}), 200
+
+@app.route("/googlesearch", methods=["GET"])
+def googlesearch():
+    query = request.args.get("q", "")
+    import urllib.parse
+    encoded_query = urllib.parse.quote(query)
+    search_url = f"https://www.google.com/search?q=India+election+{encoded_query}"
+    knowledge_url = f"https://www.google.com/search?q={encoded_query}+Election+Commission+of+India"
+    return jsonify({"search_url": search_url, "knowledge_url": knowledge_url}), 200
+
+@app.route("/nearbyoffice", methods=["GET"])
+def nearbyoffice():
+    city = request.args.get("city", "")
+    import urllib.parse
+    encoded_city = urllib.parse.quote(city)
+    maps_url = f"https://www.google.com/maps/search/election+commission+office+in+{encoded_city}"
+    message = f"Find election office in {city}"
+    return jsonify({"maps_url": maps_url, "message": message}), 200
+
+@app.route("/static_map", methods=["GET"])
+def static_map():
+    embed_url = "https://maps.google.com/maps?q=Election+Commission+of+India,+New+Delhi&t=&z=15&ie=UTF8&iwloc=&output=embed"
+    return jsonify({"embed_url": embed_url}), 200
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "healthy", "timestamp": time.time()}), 200
 
 if __name__ == "__main__":
     # Run on Antigravity default port 8080 and expose to all network interfaces

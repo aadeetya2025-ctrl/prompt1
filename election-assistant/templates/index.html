@@ -82,6 +82,17 @@
             color: var(--white);
         }
 
+        .green-btn {
+            background-color: #10b981;
+            color: var(--white);
+            border-color: #10b981;
+        }
+
+        .green-btn:hover {
+            background-color: #059669;
+            color: var(--white);
+        }
+
         #chat-box {
             height: 400px;
             overflow-y: auto;
@@ -309,6 +320,9 @@
             <button class="quick-action-btn" onclick="sendQuickAction('How Results Work')">How Results Work</button>
             <button class="quick-action-btn" onclick="sendQuickAction('What is EVM?')">What is EVM?</button>
             <button class="quick-action-btn" onclick="sendQuickAction('Who Can Vote?')">Who Can Vote?</button>
+            <button class="quick-action-btn green-btn" onclick="sendQuickAction('translate to hindi')">🌐 Translate to Hindi</button>
+            <button class="quick-action-btn green-btn" onclick="findNearestOffice()">📍 Find Nearest Election Office</button>
+            <button class="quick-action-btn green-btn" onclick="searchLastBotMessage()">🔍 Search on Google</button>
         </div>
 
         <div id="chat-box">
@@ -442,6 +456,42 @@
 
         function sendQuickAction(actionText) {
             sendMessage(actionText);
+        }
+
+        async function findNearestOffice() {
+            const city = prompt("Please enter your city to find the nearest election office:");
+            if (city && city.trim()) {
+                try {
+                    const response = await fetch('/nearbyoffice?city=' + encodeURIComponent(city.trim()));
+                    const data = await response.json();
+                    if (data.maps_url) {
+                        window.open(data.maps_url, '_blank');
+                    }
+                } catch (e) {
+                    console.error("Error fetching nearby office:", e);
+                }
+            }
+        }
+
+        async function searchLastBotMessage() {
+            const botMessages = document.querySelectorAll('.bot-message');
+            if (botMessages.length > 0) {
+                const lastMsg = botMessages[botMessages.length - 1];
+                let text = lastMsg.childNodes[0] ? lastMsg.childNodes[0].nodeValue : '';
+                if (text && text.trim()) {
+                    try {
+                        const response = await fetch('/googlesearch?q=' + encodeURIComponent(text.trim()));
+                        const data = await response.json();
+                        if (data.search_url) {
+                            window.open(data.search_url, '_blank');
+                        }
+                    } catch (e) {
+                        console.error('Search error:', e);
+                    }
+                }
+            } else {
+                alert("No bot message found.");
+            }
         }
 
         function handleKeyPress(event) {
