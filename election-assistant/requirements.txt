@@ -1,5 +1,8 @@
 flask
-googletrans==4.0.0rc1
+google-cloud-translate
 pytest
 flask-cors
 flask-compress
+google-cloud-logging
+firebase-admin
+pytest-cov

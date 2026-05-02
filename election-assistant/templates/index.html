@@ -7,11 +7,11 @@
     <style>
         :root {
             --primary-blue: #1e3a8a;
-            --secondary-blue: #3b82f6;
+            --secondary-blue: #2563eb; /* Darkened for better contrast >= 4.5:1 */
             --light-blue: #eff6ff;
             --white: #ffffff;
-            --text-dark: #1f2937;
-            --text-light: #6b7280;
+            --text-dark: #111827; /* Darkened */
+            --text-light: #4b5563; /* Darkened for >= 4.5:1 contrast */
             --border-color: #e5e7eb;
         }
 
@@ -25,6 +25,29 @@
             align-items: center;
             min-height: 100vh;
             gap: 20px;
+        }
+
+        /* Skip Navigation Link */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: var(--primary-blue);
+            color: white;
+            padding: 8px 16px;
+            z-index: 100;
+            font-weight: bold;
+            transition: top 0.2s;
+            text-decoration: none;
+        }
+        .skip-link:focus {
+            top: 0;
+        }
+
+        /* Focus Indicators */
+        button:focus-visible, input:focus-visible, a:focus-visible, [tabindex="0"]:focus-visible {
+            outline: 3px solid var(--primary-blue);
+            outline-offset: 2px;
         }
 
         .chat-container {
@@ -83,13 +106,13 @@
         }
 
         .green-btn {
-            background-color: #10b981;
+            background-color: #059669; /* WCAG compliant green */
             color: var(--white);
-            border-color: #10b981;
+            border-color: #059669;
         }
 
         .green-btn:hover {
-            background-color: #059669;
+            background-color: #047857;
             color: var(--white);
         }
 
@@ -186,7 +209,6 @@
             margin-bottom: 8px;
         }
 
-        /* Scrollbar styling */
         #chat-box::-webkit-scrollbar {
             width: 6px;
         }
@@ -198,7 +220,6 @@
             border-radius: 10px;
         }
 
-        /* Timeline styles */
         .timeline-btn-container {
             text-align: center;
             width: 100%;
@@ -293,7 +314,6 @@
             color: var(--text-dark);
         }
 
-        /* Footer styling */
         .app-footer {
             margin-top: 10px;
             margin-bottom: 20px;
@@ -303,56 +323,125 @@
             width: 100%;
             max-width: 600px;
         }
+
+        .map-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .map-search {
+            display: flex;
+            gap: 10px;
+        }
+
+        .map-search input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .map-search input:focus-visible {
+            border-color: var(--primary-blue);
+        }
+
+        .map-search button {
+            background-color: var(--primary-blue);
+            color: var(--white);
+            border: none;
+            border-radius: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .map-search button:hover {
+            background-color: var(--secondary-blue);
+        }
+        
+        .map-frame {
+            border: 0;
+            width: 100%;
+            height: 300px;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
+    <a href="#chat-container" class="skip-link">Skip to main content</a>
 
-    <div class="chat-container">
-        <div class="chat-header">
-            <h1>🗳️ Election Process Assistant</h1>
+    <div id="chat-container" class="chat-container" role="main">
+        <div class="chat-header" role="banner">
+            <h1><span role="img" aria-label="Ballot Box">🗳️</span> Election Process Assistant</h1>
             <p>Ask me anything about how elections work!</p>
         </div>
 
-        <div class="quick-actions">
-            <button class="quick-action-btn" onclick="sendQuickAction('How to Register')">How to Register</button>
-            <button class="quick-action-btn" onclick="sendQuickAction('Voting Timeline')">Voting Timeline</button>
-            <button class="quick-action-btn" onclick="sendQuickAction('On Voting Day')">On Voting Day</button>
-            <button class="quick-action-btn" onclick="sendQuickAction('How Results Work')">How Results Work</button>
-            <button class="quick-action-btn" onclick="sendQuickAction('What is EVM?')">What is EVM?</button>
-            <button class="quick-action-btn" onclick="sendQuickAction('Who Can Vote?')">Who Can Vote?</button>
-            <button class="quick-action-btn green-btn" onclick="sendQuickAction('translate to hindi')">🌐 Translate to Hindi</button>
-            <button class="quick-action-btn green-btn" onclick="findNearestOffice()">📍 Find Nearest Election Office</button>
-            <button class="quick-action-btn green-btn" onclick="searchLastBotMessage()">🔍 Search on Google</button>
+        <div class="quick-actions" role="region" aria-label="Quick Action Questions">
+            <button class="quick-action-btn" aria-label="Ask How to Register" onclick="sendQuickAction('How to Register')">How to Register</button>
+            <button class="quick-action-btn" aria-label="Ask about Voting Timeline" onclick="sendQuickAction('Voting Timeline')">Voting Timeline</button>
+            <button class="quick-action-btn" aria-label="Ask about On Voting Day" onclick="sendQuickAction('On Voting Day')">On Voting Day</button>
+            <button class="quick-action-btn" aria-label="Ask How Results Work" onclick="sendQuickAction('How Results Work')">How Results Work</button>
+            <button class="quick-action-btn" aria-label="Ask What is EVM" onclick="sendQuickAction('What is EVM?')">What is EVM?</button>
+            <button class="quick-action-btn" aria-label="Ask Who Can Vote" onclick="sendQuickAction('Who Can Vote?')">Who Can Vote?</button>
+            <button class="quick-action-btn green-btn" aria-label="Translate chat to Hindi" onclick="sendQuickAction('translate to hindi')"><span role="img" aria-label="Globe">🌐</span> Translate to Hindi</button>
+            <button class="quick-action-btn green-btn" aria-label="Find Nearest Election Office" onclick="findNearestOffice()"><span role="img" aria-label="Map Pin">📍</span> Find Nearest Election Office</button>
+            <button class="quick-action-btn green-btn" aria-label="Search last bot message on Google" onclick="searchLastBotMessage()"><span role="img" aria-label="Magnifying Glass">🔍</span> Search on Google</button>
         </div>
 
-        <div id="chat-box">
-            <div class="message bot-message">
+        <!-- aria-live="polite" announces new messages to screen readers automatically -->
+        <div id="chat-box" role="log" aria-live="polite" aria-atomic="false">
+            <div class="message bot-message" tabindex="0">
                 Hello! I am your Election Process Assistant. I can help you with topics like voter registration, voting process, election timelines, candidates, results, and EVMs. How can I assist you today?
             </div>
-            <div id="typing-indicator" class="typing-indicator">Assistant is typing...</div>
+            <div id="typing-indicator" class="typing-indicator" aria-hidden="true">Assistant is typing...</div>
         </div>
 
-        <div class="input-container">
-            <input type="text" id="user-input" placeholder="Type your question here..." onkeypress="handleKeyPress(event)">
+        <div class="input-container" role="search">
+            <input type="text" id="user-input" aria-label="Type your question here" placeholder="Type your question here..." onkeypress="handleKeyPress(event)">
             <button id="send-btn" onclick="sendMessage()" aria-label="Send Message">
-                <svg viewBox="0 0 24 24">
+                <svg viewBox="0 0 24 24" aria-hidden="true" role="img" focusable="false">
                     <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
                 </svg>
             </button>
         </div>
     </div>
 
-    <div class="timeline-btn-container">
-        <button class="show-timeline-btn" onclick="toggleTimeline()">📅 Show Election Timeline</button>
+    <div class="map-container" role="region" aria-label="Find Election Office Map">
+        <h2 style="margin: 0; color: var(--primary-blue); text-align: center; font-size: 1.2rem;">Find Nearest Election Office</h2>
+        <div class="map-search" role="search">
+            <input type="text" id="map-city-input" placeholder="Enter your city (e.g., Mumbai)" aria-label="City for election office search" onkeypress="if(event.key === 'Enter') updateMap()">
+            <button onclick="updateMap()" aria-label="Search map">Search</button>
+        </div>
+        <iframe id="election-map" class="map-frame" 
+            src="https://www.google.com/maps/embed/v1/search?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFmBWY&q=election+office+in+New+Delhi" 
+            allowfullscreen 
+            loading="lazy" 
+            title="Map of Election Offices">
+        </iframe>
     </div>
 
-    <div id="timeline-container" class="timeline-container">
-        <h2>Election Timeline</h2>
-        <div id="timeline-content-area"></div>
+    <div class="timeline-btn-container" role="region" aria-label="Timeline Controls">
+        <button class="show-timeline-btn" aria-label="Toggle Election Timeline" onclick="toggleTimeline()"><span role="img" aria-label="Calendar">📅</span> Show Election Timeline</button>
     </div>
 
-    <!-- Added Footer -->
-    <footer class="app-footer">
+    <div id="timeline-container" class="timeline-container" role="region" aria-label="Election Timeline Details" tabindex="-1">
+        <h2 tabindex="0">Election Timeline</h2>
+        <div id="timeline-content-area" role="list"></div>
+    </div>
+
+    <footer class="app-footer" role="contentinfo">
         Powered by Google Antigravity | Data based on Election Commission of India guidelines
     </footer>
 
@@ -365,19 +454,20 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // Updated addMessage to accept a searchUrl parameter
         function addMessage(message, isUser, searchUrl = null) {
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message');
             messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
             messageDiv.textContent = message;
+            // Add tabindex for keyboard navigation so users can tab to messages
+            messageDiv.setAttribute('tabindex', '0');
             
-            // If it's a bot message and we have a search URL, append the "Learn more" link
             if (!isUser && searchUrl) {
                 const link = document.createElement('a');
                 link.href = searchUrl;
                 link.target = '_blank';
-                link.innerHTML = '🔍 Learn more on Google';
+                link.innerHTML = '<span role="img" aria-label="Magnifying Glass">🔍</span> Learn more on Google';
+                link.setAttribute('aria-label', 'Learn more about this topic on Google in a new tab');
                 link.style.display = 'block';
                 link.style.marginTop = '8px';
                 link.style.fontSize = '0.85rem';
@@ -391,18 +481,19 @@
                 messageDiv.appendChild(link);
             }
             
-            // Insert before typing indicator
             chatBox.insertBefore(messageDiv, typingIndicator);
             scrollToBottom();
         }
 
         function showTypingIndicator() {
             typingIndicator.style.display = 'block';
+            typingIndicator.setAttribute('aria-hidden', 'false');
             scrollToBottom();
         }
 
         function hideTypingIndicator() {
             typingIndicator.style.display = 'none';
+            typingIndicator.setAttribute('aria-hidden', 'true');
         }
 
         async function sendMessage(text = null) {
@@ -410,15 +501,12 @@
             
             if (!messageText) return;
 
-            // Clear input
             if (!text) userInput.value = '';
 
-            // Add user message to chat
             addMessage(messageText, true);
             showTypingIndicator();
 
             try {
-                // Fetch the bot reply from the /chat endpoint
                 const response = await fetch('/chat', {
                     method: 'POST',
                     headers: {
@@ -429,7 +517,6 @@
 
                 const data = await response.json();
                 
-                // Fetch the search URL for the user's query
                 let searchUrl = null;
                 try {
                     const searchRes = await fetch('/search?q=' + encodeURIComponent(messageText));
@@ -442,7 +529,6 @@
                 hideTypingIndicator();
                 
                 if (data.reply) {
-                    // Pass the retrieved searchUrl to addMessage
                     addMessage(data.reply, false, searchUrl);
                 } else {
                     addMessage("Sorry, I encountered an error. Please try again.", false);
@@ -508,10 +594,12 @@
             
             if (timelineContainer.style.display === 'block') {
                 timelineContainer.style.display = 'none';
-                btn.innerHTML = '📅 Show Election Timeline';
+                btn.innerHTML = '<span role="img" aria-label="Calendar">📅</span> Show Election Timeline';
+                btn.setAttribute('aria-expanded', 'false');
             } else {
                 timelineContainer.style.display = 'block';
-                btn.innerHTML = '📅 Hide Election Timeline';
+                btn.innerHTML = '<span role="img" aria-label="Calendar">📅</span> Hide Election Timeline';
+                btn.setAttribute('aria-expanded', 'true');
                 
                 if (!timelineLoaded) {
                     await fetchTimeline();
@@ -519,12 +607,14 @@
                 }
                 
                 timelineContainer.scrollIntoView({ behavior: 'smooth' });
+                // Move focus to the container for screen readers
+                timelineContainer.focus();
             }
         }
 
         async function fetchTimeline() {
             const contentArea = document.getElementById('timeline-content-area');
-            contentArea.innerHTML = '<p style="text-align:center;">Loading timeline...</p>';
+            contentArea.innerHTML = '<p style="text-align:center;" role="status">Loading timeline...</p>';
             
             try {
                 const response = await fetch('/timeline');
@@ -535,10 +625,12 @@
                 phases.forEach(phase => {
                     const item = document.createElement('div');
                     item.className = 'timeline-item';
+                    item.setAttribute('role', 'listitem');
+                    item.setAttribute('tabindex', '0');
                     
                     item.innerHTML = `
-                        <div class="timeline-icon">${phase.emoji}</div>
-                        <div class="timeline-line"></div>
+                        <div class="timeline-icon" aria-hidden="true">${phase.emoji}</div>
+                        <div class="timeline-line" aria-hidden="true"></div>
                         <div class="timeline-content">
                             <h3>${phase.phase}</h3>
                             <div class="timeline-duration">${phase.duration}</div>
@@ -549,9 +641,16 @@
                     contentArea.appendChild(item);
                 });
             } catch (error) {
-                contentArea.innerHTML = '<p style="text-align:center; color:red;">Failed to load timeline data.</p>';
+                contentArea.innerHTML = '<p style="text-align:center; color:red;" role="alert">Failed to load timeline data.</p>';
                 console.error('Error fetching timeline:', error);
             }
+        }
+
+        function updateMap() {
+            const cityInput = document.getElementById('map-city-input').value.trim();
+            const mapFrame = document.getElementById('election-map');
+            const city = cityInput || 'New Delhi'; // default to new delhi if empty
+            mapFrame.src = `https://www.google.com/maps/embed/v1/search?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFmBWY&q=election+office+in+${encodeURIComponent(city)}`;
         }
     </script>
 </body>

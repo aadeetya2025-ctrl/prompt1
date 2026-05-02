@@ -1,14 +1,25 @@
 from flask import Flask, render_template, request, jsonify
-from googletrans import Translator
+from google.cloud import translate_v2 as translate
 from flask_cors import CORS
 from flask_compress import Compress
 import functools
 import time
+import logging
+import google.cloud.logging
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 app = Flask(__name__)
 Compress(app)
 CORS(app)
-translator = Translator()
+translate_client = translate.Client()
+
+client = google.cloud.logging.Client()
+client.setup_logging()
+
+if not firebase_admin._apps:
+    firebase_admin.initialize_app()
+db = firestore.client()
 
 @app.after_request
 def add_security_headers(response):
@@ -52,28 +63,35 @@ def get_election_response(user_message):
 
 @app.route("/")
 def home():
+    logging.info("Accessed home route")
     return render_template("index.html"), 200
 
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
     if not data or "message" not in data:
+        logging.error("Chat request failed: No message provided")
         return jsonify({"error": "No message provided"}), 400
     
     user_message = str(data["message"]).strip()[:500]
     if not user_message:
+        logging.error("Chat request failed: Message is empty")
         return jsonify({"error": "Message cannot be empty"}), 400
         
+    logging.info(f"Received chat message: {user_message}")
     reply = get_election_response(user_message)
     
     if "hindi" in user_message.lower() or "translate to hindi" in user_message.lower():
-        translated = translator.translate(reply, dest="hi")
-        reply = translated.text
+        logging.info("Translating response to Hindi")
+        result = translate_client.translate(reply, target_language="hi")
+        reply = result["translatedText"]
         
+    logging.info(f"Sending reply: {reply[:100]}...")
     return jsonify({"reply": reply}), 200
 
 @app.route("/timeline", methods=["GET"])
 def timeline():
+    logging.info("Accessed timeline route")
     phases = [
         {"phase": "Announcement & MCC", "duration": "Day 1", "description": "Election Commission announces dates; Model Code of Conduct comes into force.", "emoji": "📢"},
         {"phase": "Voter List Finalization", "duration": "Before Nominations", "description": "Final electoral rolls are published. Last chance for voter registration updates.", "emoji": "📝"},
@@ -91,6 +109,7 @@ def timeline():
 def search():
     """Returns a Google Search URL for the given query."""
     query = request.args.get("q", "")
+    logging.info(f"Accessed search route with query: {query}")
     import urllib.parse
     # URL encode the query to ensure special characters are handled
     encoded_query = urllib.parse.quote(query)
@@ -102,6 +121,7 @@ def search():
 @app.route("/googlesearch", methods=["GET"])
 def googlesearch():
     query = request.args.get("q", "")
+    logging.info(f"Accessed googlesearch route with query: {query}")
     import urllib.parse
     encoded_query = urllib.parse.quote(query)
     search_url = f"https://www.google.com/search?q=India+election+{encoded_query}"
@@ -111,6 +131,7 @@ def googlesearch():
 @app.route("/nearbyoffice", methods=["GET"])
 def nearbyoffice():
     city = request.args.get("city", "")
+    logging.info(f"Accessed nearbyoffice route with city: {city}")
     import urllib.parse
     encoded_city = urllib.parse.quote(city)
     maps_url = f"https://www.google.com/maps/search/election+commission+office+in+{encoded_city}"
@@ -119,12 +140,70 @@ def nearbyoffice():
 
 @app.route("/static_map", methods=["GET"])
 def static_map():
+    logging.info("Accessed static_map route")
     embed_url = "https://maps.google.com/maps?q=Election+Commission+of+India,+New+Delhi&t=&z=15&ie=UTF8&iwloc=&output=embed"
     return jsonify({"embed_url": embed_url}), 200
 
 @app.route("/health", methods=["GET"])
 def health():
+    logging.info("Accessed health route")
     return jsonify({"status": "healthy", "timestamp": time.time()}), 200
+
+@app.route("/save", methods=["POST"])
+def save_chat():
+    data = request.get_json()
+    if not data or "user_message" not in data or "bot_reply" not in data:
+        return jsonify({"error": "Missing user_message or bot_reply"}), 400
+        
+    try:
+        doc_ref = db.collection('chat_history').document()
+        doc_ref.set({
+            'user_message': data['user_message'],
+            'bot_reply': data['bot_reply'],
+            'timestamp': firestore.SERVER_TIMESTAMP
+        })
+        logging.info("Chat saved to Firestore")
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        logging.error(f"Error saving to Firestore: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/translate", methods=["POST"])
+def translate_text():
+    data = request.get_json()
+    if not data or "text" not in data:
+        return jsonify({"error": "No text provided"}), 400
+        
+    text = data["text"]
+    logging.info("Translating text to Hindi via /translate route")
+    try:
+        result = translate_client.translate(text, target_language="hi")
+        return jsonify({"translated_text": result["translatedText"]}), 200
+    except Exception as e:
+        logging.error(f"Translation error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/history", methods=["GET"])
+def get_history():
+    try:
+        chats_ref = db.collection('chat_history').order_by('timestamp', direction=firestore.Query.DESCENDING).limit(10)
+        docs = chats_ref.stream()
+        
+        history = []
+        for doc in docs:
+            doc_dict = doc.to_dict()
+            if 'timestamp' in doc_dict and doc_dict['timestamp']:
+                try:
+                    doc_dict['timestamp'] = doc_dict['timestamp'].isoformat()
+                except AttributeError:
+                    pass
+            history.append(doc_dict)
+            
+        logging.info("Fetched chat history from Firestore")
+        return jsonify({"history": history}), 200
+    except Exception as e:
+        logging.error(f"Error fetching from Firestore: {e}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     # Run on Antigravity default port 8080 and expose to all network interfaces
